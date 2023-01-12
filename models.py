@@ -63,7 +63,7 @@ class StochasticDurationPredictor(nn.Module):
       flows = self.flows
       assert w is not None
 
-      logdet_tot_q = 0 
+      logdet_tot_q = 0
       h_w = self.post_pre(w)
       h_w = self.post_convs(h_w, x_mask)
       h_w = self.post_proj(h_w) * x_mask
@@ -72,7 +72,7 @@ class StochasticDurationPredictor(nn.Module):
       for flow in self.post_flows:
         z_q, logdet_q = flow(z_q, x_mask, g=(x + h_w))
         logdet_tot_q += logdet_q
-      z_u, z1 = torch.split(z_q, [1, 1], 1) 
+      z_u, z1 = torch.split(z_q, [1, 1], 1)
       u = torch.sigmoid(z_u) * x_mask
       z0 = (w - u) * x_mask
       logdet_tot_q += torch.sum((F.logsigmoid(z_u) + F.logsigmoid(-z_u)) * x_mask, [1,2])
@@ -274,7 +274,7 @@ class iSTFT_Generator(torch.nn.Module):
         self.reflection_pad = torch.nn.ReflectionPad1d((1, 0))
         self.stft = TorchSTFT(filter_length=self.gen_istft_n_fft, hop_length=self.gen_istft_hop_size, win_length=self.gen_istft_n_fft)
     def forward(self, x, g=None):
-        
+
         x = self.conv_pre(x)
         for i in range(self.num_upsamples):
             x = F.leaky_relu(x, modules.LRELU_SLOPE)
@@ -330,11 +330,11 @@ class Multiband_iSTFT_Generator(torch.nn.Module):
         self.ups.apply(init_weights)
         self.reflection_pad = torch.nn.ReflectionPad1d((1, 0))
         self.reshape_pixelshuffle = []
- 
+
         self.subband_conv_post = weight_norm(Conv1d(ch, self.subbands*(self.post_n_fft + 2), 7, 1, padding=3))
-        
+
         self.subband_conv_post.apply(init_weights)
-        
+
         self.gen_istft_n_fft = gen_istft_n_fft
         self.gen_istft_hop_size = gen_istft_hop_size
 
@@ -342,14 +342,14 @@ class Multiband_iSTFT_Generator(torch.nn.Module):
     def forward(self, x, g=None):
       stft = TorchSTFT(filter_length=self.gen_istft_n_fft, hop_length=self.gen_istft_hop_size, win_length=self.gen_istft_n_fft).to(x.device)
       pqmf = PQMF(x.device)
-      
+
       x = self.conv_pre(x)#[B, ch, length]
-        
+
       for i in range(self.num_upsamples):
           x = F.leaky_relu(x, modules.LRELU_SLOPE)
           x = self.ups[i](x)
-          
-          
+
+
           xs = None
           for j in range(self.num_kernels):
               if xs is None:
@@ -357,7 +357,7 @@ class Multiband_iSTFT_Generator(torch.nn.Module):
               else:
                   xs += self.resblocks[i*self.num_kernels+j](x)
           x = xs / self.num_kernels
-          
+
       x = F.leaky_relu(x)
       x = self.reflection_pad(x)
       x = self.subband_conv_post(x)
@@ -408,11 +408,11 @@ class Multistream_iSTFT_Generator(torch.nn.Module):
         self.ups.apply(init_weights)
         self.reflection_pad = torch.nn.ReflectionPad1d((1, 0))
         self.reshape_pixelshuffle = []
- 
+
         self.subband_conv_post = weight_norm(Conv1d(ch, self.subbands*(self.post_n_fft + 2), 7, 1, padding=3))
-        
+
         self.subband_conv_post.apply(init_weights)
-        
+
         self.gen_istft_n_fft = gen_istft_n_fft
         self.gen_istft_hop_size = gen_istft_hop_size
 
@@ -422,7 +422,7 @@ class Multistream_iSTFT_Generator(torch.nn.Module):
         self.register_buffer("updown_filter", updown_filter)
         self.multistream_conv_post = weight_norm(Conv1d(4, 1, kernel_size=63, bias=False, padding=get_padding(63, 1)))
         self.multistream_conv_post.apply(init_weights)
-        
+
 
 
     def forward(self, x, g=None):
@@ -430,14 +430,14 @@ class Multistream_iSTFT_Generator(torch.nn.Module):
       # pqmf = PQMF(x.device)
 
       x = self.conv_pre(x)#[B, ch, length]
-        
+
       for i in range(self.num_upsamples):
 
-          
+
           x = F.leaky_relu(x, modules.LRELU_SLOPE)
           x = self.ups[i](x)
-          
-          
+
+
           xs = None
           for j in range(self.num_kernels):
               if xs is None:
@@ -445,7 +445,7 @@ class Multistream_iSTFT_Generator(torch.nn.Module):
               else:
                   xs += self.resblocks[i*self.num_kernels+j](x)
           x = xs / self.num_kernels
-          
+
       x = F.leaky_relu(x)
       x = self.reflection_pad(x)
       x = self.subband_conv_post(x)
@@ -458,7 +458,7 @@ class Multistream_iSTFT_Generator(torch.nn.Module):
       y_mb_hat = torch.reshape(y_mb_hat, (x.shape[0], self.subbands, 1, y_mb_hat.shape[-1]))
       y_mb_hat = y_mb_hat.squeeze(-2)
 
-      y_mb_hat = F.conv_transpose1d(y_mb_hat, self.updown_filter.cuda(x.device) * self.subbands, stride=self.subbands)
+      y_mb_hat = F.conv_transpose1d(y_mb_hat, self.updown_filter * self.subbands, stride=self.subbands)
 
       y_g_hat = self.multistream_conv_post(y_mb_hat)
 
@@ -568,7 +568,7 @@ class SynthesizerTrn(nn.Module):
   Synthesizer for Training
   """
 
-  def __init__(self, 
+  def __init__(self,
     n_vocab,
     spec_channels,
     segment_size,
@@ -579,11 +579,11 @@ class SynthesizerTrn(nn.Module):
     n_layers,
     kernel_size,
     p_dropout,
-    resblock, 
-    resblock_kernel_sizes, 
-    resblock_dilation_sizes, 
-    upsample_rates, 
-    upsample_initial_channel, 
+    resblock,
+    resblock_kernel_sizes,
+    resblock_dilation_sizes,
+    upsample_rates,
+    upsample_initial_channel,
     upsample_kernel_sizes,
     gen_istft_n_fft,
     gen_istft_hop_size,
@@ -653,7 +653,7 @@ class SynthesizerTrn(nn.Module):
       self.emb_g = nn.Embedding(n_speakers, gin_channels)
 
   def forward(self, x, x_lengths, y, y_lengths, sid=None):
-
+    print(type(x), type(x_lengths), type(y), type(y_lengths))
     x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths)
     if self.n_speakers > 0:
       g = self.emb_g(sid).unsqueeze(-1) # [b, h, 1]
@@ -682,7 +682,7 @@ class SynthesizerTrn(nn.Module):
     else:
       logw_ = torch.log(w + 1e-6) * x_mask
       logw = self.dp(x, x_mask, g=g)
-      l_length = torch.sum((logw - logw_)**2, [1,2]) / torch.sum(x_mask) # for averaging 
+      l_length = torch.sum((logw - logw_)**2, [1,2]) / torch.sum(x_mask) # for averaging
 
     # expand prior
     m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(1, 2)
